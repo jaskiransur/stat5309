@@ -1,0 +1,151 @@
+---
+title: "Lab0"
+author: "Jas Sur"
+date: "1/26/2022"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r setup, include=FALSE, tidy=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Lab 0 Problems
+
+## Question 1.a
+### Generate a random sample of 100 from t-distribtion, degree of freedom 10. 
+### Check qqnorm(); qqline(), Shapiro test. Remarks
+```{r q1.b}
+
+sample.t <- rt(100, df=10)
+qqnorm(sample.t)
+qqline(sample.t)
+shapiro.test(sample.t)
+
+```
+***
+1. Null hypothesis (H0 sample data is normal)
+2. Alternative hypothesis (H1 sample data is not normal)
+
+Since the pvalue > 0.05, which means that the null hypothesis that values are normal is accepted and the alternative hypothesis is rejected.
+***
+
+## Question 1.b
+### Generate a random sample of 100 from a Chi-square distribution, df =5. 
+### Perform same procedures as in (a) . Remarks.
+
+```{r q.1b}
+
+sample.1b <-seq(-4, 4, 0.01)
+sample.chi = dchisq(sample.1b, df=5)
+qqnorm(sample.chi)
+qqline(sample.chi)
+shapiro.test(sample.chi)
+
+```
+
+***
+1. Null hypothesis (H0 sample data is normal)
+
+2. Alternative hypothesis (H1 sample data is not normal)
+
+Since the pvalue < 0.05, which means that the null hypothesis that values are normal is rejected and the alternative hypothesis is accepted.
+
+
+## Question 2.a
+### Write a 95%-CI for the population mean. 
+
+***
+Confidence interval for population mean can be determined using
+the following 
+```{r q.2a}
+sample <-c(26.4,23.5,25.4,22.9,25.2,39.2,25.5,31.9,26.0,44.6,35.5,38.6,
+           30.1,31.0,30.8,32.8,47.7,39.1,55.3,50.7,73.8,71.1,68.4,77.1,
+           19.4,19.3,18.7,19.0,23.2,21.3,23.2,19.9,18.9,19.8,19.6,21.9)
+hist(sample)
+
+
+n<-length(sample)
+xbar<-mean(sample)
+s<-sd(sample)
+sprintf("mean %f, std dev %f, sample size %d", xbar, s, n)
+margin <- qt(0.95,df=n-1)*s/sqrt(n)
+low_ci <- xbar - margin
+
+high_ci <- xbar + margin
+sprintf("confidence interval for the population mean is (%f, %f)", low_ci, high_ci)
+boxplot(sample, col = 3)
+lines(c(0.75,1.25),c(low_ci,low_ci),col=4)
+lines(c(0.75,1.25),c(xbar,xbar),col=2,lwd=2)
+lines(c(0.75,1.25),c(high_ci,high_ci),col=4)
+legend("topleft", c("95% CI", "Mean"), lty=1,col = c(4, 2),bty ="n")
+```
+
+***
+95 % Confidence interval is reasonable compare to the sample mean
+
+### What assumption about population for the work, suppose the sample is random.
+***
+The assumptions would be that the data is normal and the errors are constant. 
+
+
+## Question 2.b
+### Write a 95%- CI for population standard deviation.
+
+***
+Confidence interval for population standard deviation can be determined using
+the following formula
+confidence interval: $CI = [√(n-1)s^{2}/X^{2}(α/2), √(n-1)s^{2}/ X^{2}(1-α/2)]$
+
+```{r q.2b}
+
+sample <-c(26.4,23.5,25.4,22.9,25.2,39.2,25.5,31.9,26.0,44.6,35.5,38.6,
+           30.1,31.0,30.8,32.8,47.7,39.1,55.3,50.7,73.8,71.1,68.4,77.1,
+           19.4,19.3,18.7,19.0,23.2,21.3,23.2,19.9,18.9,19.8,19.6,21.9)
+n <- length(sample)
+xbar<-mean(sample)
+s<-sd(sample)
+sprintf("population sd %f, size %d, mean %f", s, n, xbar)
+
+left <- qchisq(p=.05, df=n-1, lower.tail=FALSE)
+right <- qchisq(p=.95, df=n-1, lower.tail=FALSE)
+low_ci <- sqrt((n-1)*s^2/left)
+high_ci <- sqrt((n-1)*s^2/right)
+
+sprintf("Confidence interval for population std dev is  %f, %f", low_ci, high_ci)
+boxplot(sample-s, col = 3)
+lines(c(0.75,1.25),c(low_ci,low_ci),col=4)
+lines(c(0.75,1.25),c(s,s),col=2,lwd=2)
+lines(c(0.75,1.25),c(high_ci,high_ci),col=4)
+legend("topleft", c("95% CI", "Std dev"), lty=1,col = c(4, 2),bty ="n")
+```
+***
+A confidence interval for a standard deviation is a range of values that is likely to contain true population standard deviation with a certain level of confidence.
+***
+
+# Question 3
+### Run the following code
+
+```{r q.3}
+
+sample <-c(26.4,23.5,25.4,22.9,25.2,39.2,25.5,31.9,26.0,44.6,35.5,38.6,
+           30.1,31.0,30.8,32.8,47.7,39.1,55.3,50.7,73.8,71.1,68.4,77.1,
+           19.4,19.3,18.7,19.0,23.2,21.3,23.2,19.9,18.9,19.8,19.6,21.9)
+hist(sample)
+sample.s <-sort(sample) #sort data increasing
+rank <- rank(sample.s) #rank data from 1 to 36
+size <- length(sample.s) # size of data
+p <- (rank-.5)/size #cummulative prob of data
+z.quantile <- qnorm(p) # Standard Normal quantiles with such probability
+
+data <- cbind(rank, sample.s, p, z.quantile)
+data
+
+#scatterplot of x=Z quantiles, y= data sorted
+plot(x=z.quantile, y=sample.s, pch=16, main="QQ Plot") 
+abline(lm(sample.s ~ z.quantile))
+```
+
+The QQ plot suggests that the data is not normal
