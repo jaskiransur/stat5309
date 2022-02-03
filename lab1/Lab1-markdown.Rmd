@@ -1,0 +1,209 @@
+---
+title: "Lab1"
+author: "Jas Sur"
+date: "2/3/2022"
+output:
+  pdf_document: default
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(BSDA)
+
+library("fastmap")
+```
+
+## Question.1
+
+### Set up hypothesis that the mean life is 120 days
+
+```{r q.1.a}
+days <- c(108, 124,124,106,115, 138, 163, 159, 134, 139)
+mean(days)
+sd(days)
+par(mfrow=c(1,2))
+hist(days)
+qqnorm(days)
+qqline(days)
+```
+
+#### Null and alternative hypothesis
+
+> Ho = mean shelf life of carbonated beverages is 120 days
+
+> Ha = mean shelf life of carbonated beverages is smaller than 120 days
+
+> The data doesn't appear to be normal and qqplot also underscore that fact.
+
+### b. Test these hypothesis using alpha = 00.1. What are your conclusions?
+
+```{r q.1.b}
+#1. Using z.test
+z.test(days, mu=120, sigma.x=19.54, conf.level = 0.99) 
+#2. Using t.test
+t.test(days, mu=120, sigma.x=19.54, conf.level = 0.99)
+```
+#### Analysis of z test and t test
+> Both z.test and t.test have p-value > 0.01, so we accept the null hypothesis that the mean values is equal to 120
+
+
+### c Find of the pvalue for the test in b
+
+> pvalue for the z test is 0.07504
+
+> pvalue for the t test is 0.1088
+
+
+### d. Construct a 99 percentile Confidence interval
+> > We are also 99% confidence that the mean values are between (115.0837 146.9163), (110.914 151.086) for z.test and t.test respectively.
+
+***
+
+## Question 2
+
+``` {r q.2.data}
+sigma.1 <- 0.015
+sigma.2 <- 0.018
+machine.1 <-c(16.03, 16.04, 16.05, 16.05, 16.02, 16.01, 15.96, 15.98, 16.02, 15.99)
+machine.2<- c(16.02, 15.97, 15.96, 16.01, 15.99, 16.03, 16.04, 16.02, 16.01, 16.00)
+mean(machine.1)- mean(machine.2)
+
+par(mfrow=c(2,2))
+hist(machine.1)
+qqnorm(machine.1)
+qqline(machine.2)
+hist(machine.2)
+qqnorm(machine.1)
+qqline(machine.2)
+```
+
+
+### a. State the hypothesis that should be tested in this experiment.
+
+#### Null and alternative hypothesis
+
+> Ho = difference of mean for filled plastic bottle from machine1 and machine2 is 0
+
+> Ha = difference of mean for filled plastic bottle from machine1 and machine2 is not 0
+
+### b. Test these hypothesis using alpha = 0.05. What are your conclusions?
+
+```{r q.2.b}
+#using two sample z test
+length(machine.1)
+length(machine.2)
+z.test(machine.1, machine.2, sigma.x = sigma.1, sigma.y = sigma.2, conf.level = 0.95)
+
+#using two sample t test
+labels<- rep(c("machine.1", "machine.2"), each=length(machine.1))
+machines<- c(machine.1,machine.2)
+
+
+t.test(machines ~ labels, var.equal=TRUE) 
+```
+#### Two sample z.test
+> Two sample z.test has a pvalue >0.05 (p-value = 0.1771), so null hypothesis that the difference of mean is 0 is accepted, and the alternative hypothesis is rejected.
+
+#### Two sample t.test
+> Two sample t.test has a pvalue >0.05 (p-value = 0.4347), so null hypothesis that the difference of mean is 0 is accepted, and the alternative hypothesis is rejected.
+
+### c. Find the pvalue for this test
+> The pvalue for z.test is 0.1771 and the pvalue for t.test is 0.4347
+
+### d. Find a 95% Confidence interval
+> 95 percent confidence interval for z.test: -0.004522262  0.024522262
+ 
+> 95 percent confidence interval: -0.01629652  0.03629652
+
+So it may be ascertained that we are 95% confident that the difference of mean 
+for machine 1 and machine 2 will be between  -0.004522262  0.024522262 for z.test 
+and -0.01629652  0.03629652 for t.test
+
+
+### e.Perform a var.test() to check if 2 samples come from equal variance populations.
+
+```{r q.2.e}
+var.test(machine.1, machine.2)
+```
+
+### f. Perform a boxplot and a stripchart with line connecting means.
+
+```{r p.2.f}
+df = data.frame(cbind(machine.1, machine.2))
+names(df)<- c("Machine1", "Machine2")
+boxplot(df)
+
+stripchart(df, xlab="Filling volume", vertical=TRUE, pch=16)
+means <- apply(df,2,mean)
+lines(means)
+
+
+```
+
+
+***
+
+
+## Question.3
+
+```{r p.3.data}
+type.1 <- c(65,81,57,66,82,82,67,59,75,70)
+type.2 <- c(64,71,83,59,65,56,69,74,82,79)
+sprintf("difference of mean %f", mean(type.1)-mean(type.2))
+par(mfrow=c(2,2))
+hist(type.1)
+qqnorm(type.1)
+qqline(type.1)
+
+hist(type.2)
+qqnorm(type.2)
+qqline(type.2)
+```
+
+#### Test the hypothesis that the two variances are equal, use alpha= 0.05
+> Ho: variance for type.1 and type.2 is equal
+> Ha: variance for type.1 and type.2 is not equal
+
+```{r q.3.a}
+var.test(type.1, type.2)
+```
+#### Result 
+> The ratio of variance is almost 1, and the pvalue (0.9744) is greater than 0.05, so that proves that the null hypothesis that the true ratio of variance is equal to 1 is accepted and the alternative hypothesis is rejected. 
+
+
+### b. Using the results of (a), test the hypothesis that the mean burning times are equal 
+```{r p.3.b}
+
+#using two sample t test
+labels<- rep(c("type1","type2"), each=length(type.1))
+
+types<- c(type.1,type.2)
+
+
+t.test(types ~ labels, var.equal=TRUE) 
+```
+
+#### The hypothesis test is that
+>H0 difference of mean is zero
+>Ha difference of mean is not zero
+
+> The t.test have a p value >0.05, so the null hypothesis is accepted that the difference of mean is zero
+> The pvalue is 0.9622
+
+### c. Discuss the role of normality assumption in this problem. Check the assumptions of normality for both types of flares
+
+``` {r q.3.c.}
+par(mfrow=c(2,2))
+hist(type.1)
+qqnorm(type.1)
+qqline(type.1)
+hist(type.2)
+qqnorm(type.2)
+qqline(type.2)
+```
+
+The assumptions is that the data is normally distributed and errors are constant. 
+However, the plots, and qqplot shows that the data for type.1 and type.2 is not reliable and the results concluded by var.test and t.test may not be accurate.

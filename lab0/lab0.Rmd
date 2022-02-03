@@ -3,9 +3,9 @@ title: "Lab0"
 author: "Jas Sur"
 date: "1/26/2022"
 output:
-  word_document: default
-  html_document: default
   pdf_document: default
+  html_document: default
+  word_document: default
 ---
 
 
@@ -97,7 +97,7 @@ The assumptions would be that the data is normal and the errors are constant.
 ***
 Confidence interval for population standard deviation can be determined using
 the following formula
-confidence interval: $CI = [√(n-1)s^{2}/X^{2}(α/2), √(n-1)s^{2}/ X^{2}(1-α/2)]$
+confidence interval: $CI = [sqrt(n-1)s^{2}/X^{2}(alpha/2), sqrt(n-1)s^{2}/ X^{2}(1-alpha/2)]$
 
 ```{r q.2b}
 
