@@ -72,3 +72,5 @@ f.sample <- (x.chisq/10)/(y.chisq/5)
 
 hist(f.sample, probability = TRUE)
 points(density(f.sample), type="l", col="red")
+
+?aov

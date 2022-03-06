@@ -1,0 +1,290 @@
+---
+title: "Lab3"
+author: "Jas Sur"
+date: "2/19/2022"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Q.1
+1. Problem: ( Casting of High Temperature Alloys) A metal alloy is produced by a
+high temperature casting process. The tensile strength of the alloy is critical 
+for its future use. The casting process is designed produce bars of alloy with 
+an average tensile strength above minimum requirement. An experiment was planned
+to isolate the variation in tensile strength due to the effects of different 
+castings. 30 bars or alloy were produced using the 3 casting methods.
+
+Set up the data frame. Form a factor vector “methods”. 
+Form a vector of response “strength”. Form a data frame named “alloy”.
+
+```{r}
+one <- c(88.0, 88.0, 94.8, 90.8, 93.0, 89.0, 86.0, 92.9, 89.0, 93.0)
+two <- c(88.0, 88.0, 94.8, 90.8, 93.0, 89.0, 86.0, 92.9, 89.0, 93.0)
+three <- c(94.2, 91.5, 92.0, 96.5, 95.6, 93.8, 92.5, 93.2, 96.2, 92.5)
+strength <- c(one, two, three)
+methods <- rep(c("one", "two", "three"), each=10)
+methods <-as.factor(methods)
+alloy <- data.frame(cbind(strength, methods))
+str(alloy)
+```
+
+### a. Test the equal variance among treatments, using bartlett.test()
+> H0 = there is no difference in conductivity var1 = var2
+> Ha = there is a difference in conductivity var1 <> var2
+
+```{r}
+bartlett.test(strength~methods, data=alloy)
+```
+
+
+pvalue is greater than 0.05, so null hypothesis is accepted and it's ascertained  the variance is same
+
+
+### b. Do a boxplot, stripchart.
+```{r}
+
+par(mfrow=c(2,2))
+boxplot(strength~methods)
+stripchart(strength~methods, vertical=TRUE, pch=16, main="Stripchart")
+
+strength.means<-tapply(strength, methods, mean)
+lines(strength.means)
+```
+
+
+### c. Build a linear model, using aov(). a summary.aov()
+```{r}
+strength.model<- aov(strength~ methods)
+summary.aov(strength.model)
+summary.lm(strength.model)
+
+
+
+par(mfrow=c(1,2))
+res <- residuals(strength.model)
+qqnorm(res, main="normality")
+qqline(res)
+shapiro.test(res)
+```
+### d. Perform TukeyHSD().
+
+```{r}
+tukey.95 <- TukeyHSD(strength.model, "methods")
+
+tukey.95
+
+plot(tukey.95)
+```
+There is no statistical difference between two and one, however the difference of mean between three-one and two-three is statistically difference cause mean-diff > tukey's value. It's further established by the fact that the p-value < 0.05 (alpha)
+
+### e. Perform a power analysis.
+```{r}
+strength.means<-tapply(strength, methods, mean)
+#strength.sd<-tapply(strength, methods, sd)
+
+#library(dplyr)
+
+#find mean and standard deviation of weight loss for each treatment group
+
+#summarize.data <- alloy %>% 
+#                    group_by(methods) %>% 
+#                        summarize(mean = mean(strength), sd #= sd(strength))
+
+
+summary.aov(strength.model)
+MSE <- 6.55
+n = 2
+power.anova.test(groups=3, n=n, between.var=var(strength.means), 
+                 within.var= MSE, 
+                 sig.level=.05, power=NULL)
+```
+
+## Q.2
+
+Setup data response time (ms) for three type of circuits that could be used in automatic valve shutoff
+
+```{r}
+one <- c(9,12,10,8,15)
+two <- c(20,21,23,17,30)
+three <- c(6,5,8,16,7)
+
+response.time<- c(one, two, three)
+circuit.type<-rep(c("one","two","three"), each =5)
+circuit.type<-as.factor(circuit.type)
+valves <-data.frame(cbind(response.time, circuit.type))
+str(valves)
+```
+
+### a. Test the hypothesis that the three circuit types have the same response time. Use alpha = 0.01
+
+H0 = three circuit have same response time
+Ha = atleast two of the three circuits have different response time 
+
+assumptions
+> data is normal
+
+```{r}
+attach(valves)
+valves.model<- aov(response.time ~circuit.type)
+summary.aov(valves.model)
+summary.lm(valves.model)
+
+
+res <- residuals(valves.model)
+
+#check variance
+bartlett.test(res~circuit.type)
+```
+p values (0.007446) is less than 0.01, so null hypothesis that the circuit type affect doesn't affect response time is rejected and the alternative hypothesis that atleast two circuit type have different response time is accepted.
+
+In-order to get which circuit type have different response time, we have check the pair-wise comparison using Tukeys test
+
+```{r}
+
+tukey.95 <- TukeyHSD(valves.model, which="circuit.type")
+tukey.95
+
+```
+
+
+The circuit.type three-one is not significant but two-one and two-three is significant
+
+
+### c. Use the graphical procedure to compare treatment means
+What conclusions can be drawn
+```{r}
+
+par(mfrow=c(2,2))
+stripchart(response.time~circuit.type, vertical=TRUE, pch=16, main="Stripchart")
+
+response.means<-tapply(response.time, circuit.type, mean)
+lines(response.means)
+
+boxplot(response.time~circuit.type)
+
+plot(tukey.95)
+```
+
+How do they compare with the conclusions from part b.
+> Comparing with tukey's table, three-one doesn't have signficant difference of means, which is substantiated by the tukey's plot.
+> two-one and two-three have signficant difference in mean because the confidence interval doesn't have any zeros in it. 
+### d. Construct a set of orthogonal contrasts 
+```{r}
+C1 <-c(1,0,-1)
+C2 <-c(-2,3,-1)
+C <- rbind(C1,C2)
+rownames(C) <- c("Tr1 ==Tr3", "Tr2 = average of Tr3, Tr4")
+
+library(gmodels)
+
+fit.contrast(valves.model, circuit.type, C, conf.int=0.95)
+```
+
+### e. If you were the design engineer and you wished to minimize the response time, which circuit type would you select?
+
+> If I have to select a circuit to minimize the response time, I would select circuit type three, because this one has the lowest response time. 
+
+### f. Analyze the residuals from this experiment. Are the basic analysis of variance assumptions satisfied.
+```{r}
+
+par(mfrow=c(1,2))
+qqnorm(res, main="normality")
+qqline(res)
+shapiro.test(res)
+
+detach()
+```
+
+The residuals doesn't appeart to be normal. The shapiro test also has p-value smaller than 0.05, which substantiate it.
+So the assumptions are not satisfied.
+
+## Q.3
+### Build the data set
+```{r}
+one <- c(58.2,57.2,58.4,55.8,54.9)
+two <- c(56.3,54.5,57.0,55.3)
+three <- c(50.1,54.2,55.4)
+four <- c(52.9,49.9,50.0,51.7)
+
+concentration <-c(one, two, three, four)
+catalyst <-c(rep(c("one"), each=5), rep(c("two"), each=4), rep(c("three"), each=3), rep(c("four"), each=4))
+catalyst <- as.factor(catalyst)
+mixture <- data.frame(cbind(concentration, catalyst))
+str(mixture)
+```
+
+### a. Do the four catalyst have the same effect on the concentration?
+
+```{r}
+attach(mixture)
+mixture.model <- aov(concentration~catalyst)
+summary.aov(mixture.model)
+summary.lm(mixture.model)
+```
+pvalue is small, so null hypothesis that the means of concentration for 
+different catalyst is same  is rejected and it's accepted that the catalyst have
+different effect on concentration.
+
+### b. Analys the residuals from this experiment
+```{r}
+par(mfrow=c(1,2))
+res <- residuals(mixture.model)
+qqnorm(res, main="normality")
+qqline(res)
+shapiro.test(res)
+```
+
+The qqnorm plot demonstrate that residuals doesn't appear to have normal values, 
+but the shapiro test has pvalue >0.05, so it can be ascertained that the residuals 
+are normal.
+
+```{r}
+tukey <- TukeyHSD(mixture.model, "catalyst")
+tukey
+plot(tukey)
+```
+
+
+### c. Construct a 99 percent interval estimate of the mean response for catalyst 1
+
+```{r}
+
+```
+
+### Calculate SST, SS(Treatment), SS(Error)
+```{r}
+mixture.means<-tapply(concentration, catalyst, mean)
+
+
+a <- concentration[catalyst=="one"]
+b <- concentration[catalyst=="two"]
+c <- concentration[catalyst=="three"]
+d <- concentration[catalyst=="four"]
+
+a.mean <-mean(a) 
+b.mean <-mean(b) 
+c.mean <-mean(c) 
+d.mean <-mean(d) 
+
+grand.mean <- mean(mixture.means)
+
+ss.error <-sum((a-a.mean)^2)+ sum((b-b.mean)^2)+sum((c-c.mean)^2)+sum((d-d.mean)^2)
+ss.error
+
+ss.total <-sum((concentration-grand.mean)^2)
+ss.total
+
+ss.treatment <-ss.total-ss.error
+ss.treatment
+
+```
+
+The ss.treatment and ss.error values are matching with those calculated in anova table.
+

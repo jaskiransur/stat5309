@@ -1,0 +1,258 @@
+---
+title: "Lab 4a"
+author: "Jas Sur"
+date: "2/27/2022"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Question 1
+
+Setup data for pressure, temperature and yield
+```{r}
+temp.data <- rep(c(150,160,170), each=6)
+pressure.data <- rep(c(200,215,230), each=3, times=2)
+yield <- c(90.4, 90.2, 90.7,90.6,90.2,90.4,90.1,90.3,90.5,90.6,89.9,90.1,90.5,90.7,90.8,90.9,90.4,90.1)
+chem.process <- data.frame(temp.data, pressure.data, yield)
+attach(chem.process)
+
+chem.process$temp <-factor(temp.data, levels =c(150,160,170), labels=c("150C", "160C", "170C"))
+chem.process$pressure <-factor(pressure.data, levels =c(200,215,230), labels=c("200Psig","215Psig", "230Psig"))
+
+head(chem.process)
+str(chem.process)
+attach(chem.process)
+```
+
+### a. Analyze the data and draw conclusions, Use alpha = 0.05
+
+a1. Plotting: boxplot of yield vs temp, yield vs pressure, yeld vs temp and pressure, interaction plot
+```{r}
+
+tapply(yield, list(temp,pressure), mean)
+boxplot(yield~temp, main="yield vs temp")
+boxplot(yield~pressure, main="yield vs pressure")
+boxplot(yield~temp*pressure, main="yield vs temp*pressre")
+
+interaction.plot(temp, pressure, yield)
+interaction.plot(pressure, temp, yield)
+
+```
+Slopes are changing, so there is some kind of interaction
+
+
+a2. Build a linear model using aov(). Print ANOVA output. Are main factors and interaction factor significant?
+
+```{r}
+chem.process.mod <- aov(yield~temp*pressure)
+summary.aov(chem.process.mod)
+
+summary.lm(chem.process.mod)
+
+chem.process.nointeraction.mod <- aov(yield~temp+pressure)
+anova(chem.process.mod, chem.process.nointeraction.mod)
+```
+
+Since P-value >.05, we accept null and reject Alternate. The interaction term is in-significant, so we can discard the interaction term. We take the partial model instead of full model
+
+
+a3. Print out regression model with coefficients
+```{r}
+
+summary.lm(chem.process.nointeraction.mod)
+```
+
+Only the intercept is significant, so it means that the linear model can remove other terms while predicting the values. 
+
+
+### b. Prepare appropriate residuals plot and comment on the model's adequecy
+```{r}
+
+summary.lm(chem.process.nointeraction.mod)
+summary.aov(chem.process.nointeraction.mod)
+```
+It looks like the difference of mean for both temperature and pressure is the same, so there is not much difference becaue of temperatuer or pressure.
+
+### c. Under what condition would you operate this process
+```{r}
+tukeys <- TukeyHSD(chem.process.nointeraction.mod)
+tukeys
+plot(tukeys)
+```
+Pvalue is large for both pressure, and temperature at all conditions, so we accept null hypothesis that there is not much difference due to the changing conditions
+
+```{r}
+library(agricolae)
+lsd <- LSD.test(chem.process.nointeraction.mod, c("temp", "pressure"), console=T)
+lsd
+plot(lsd)
+detach()
+```
+
+All terms generate almost the same yield, so we should choose the one which can be operatored at least cost. I would choose the one at 150C and 200Psig
+
+
+## Question 2
+
+setup data
+```{r}
+operator<- rep(c(1,2,3), each=8)
+machine<- rep(c(1,2,3,4), each=2, times=3)
+
+strength <- c(109, 110,110,115,108,109,110,108,110,112,110,111,111,109,114,112,116,114,112,115,114,119,120,117)
+
+fiber <- data.frame(operator, machine, strength)
+
+fiber$operator <-factor(operator, levels =c(1,2,3), labels=c("Op1", "Op2", "Op3"))
+fiber$machine <-factor(machine, levels =c(1,2,3,4), labels=c("Mach1","Mach2","Mach3","Mach4"))
+operator <-fiber$operator
+machine <-fiber$machine
+
+head(fiber)
+str(fiber)
+attach(fiber)
+
+```
+
+a1. Plotting: boxplot of strength vs operator, strength vs machine, strength vs operator and machine, interaction plot
+```{r}
+
+tapply(strength, list(operator,machine), mean)
+boxplot(strength~operator, main="strength vs operator")
+boxplot(strength~machine, main="strength vs machine")
+boxplot(strength~operator*machine, main="strength vs operator*machine")
+
+interaction.plot(operator, machine, strength)
+interaction.plot(machine, operator, strength)
+
+```
+Interaction plots are intersecting, so there is a indication of strong interaction
+
+
+a2. Build a linear model using aov(). Print ANOVA output. Are main factors and interaction factor significant?
+
+```{r}
+fiber.mod <- aov(strength~operator*machine)
+summary.aov(fiber.mod)
+
+summary.lm(fiber.mod)
+
+operator
+fiber.nointeraction.mod <- aov(strength~operator+machine)
+anova(fiber.mod, fiber.nointeraction.mod)
+```
+
+Since P-value >.05, we accept null and reject Alternate. The interaction term is in-significant, so we can discard the interaction term. We take the partial model instead of full model
+
+
+a3. Print out regression model with coefficients
+```{r}
+
+summary.lm(fiber.nointeraction.mod)
+```
+Intercept and Operator are both siginficant
+
+
+### b. Prepare appropriate residuals plot and comment on the model's adequecy
+```{r}
+
+summary.lm(fiber.nointeraction.mod)
+summary.aov(fiber.nointeraction.mod)
+```
+It looks like the difference of mean is same for machine while it's different for operator. We need to run Tukey's test to see which one are different 
+
+### c. Under what condition would you operate this process
+```{r}
+tukeys <- TukeyHSD(fiber.nointeraction.mod)
+tukeys
+plot(tukeys)
+```
+Pvalue is large for both pressure, and temperature at all conditions, so we accept null hypothesis that there is not much difference due to the changing conditions
+
+```{r}
+library(agricolae)
+lsd <- LSD.test(fiber.nointeraction.mod, c("operator", "machine"), console=T)
+lsd
+plot(lsd)
+```
+Operator3 and machine 4 appears to give the best strength
+
+## Question 3. 
+### a. create data frame with days and solution and growth as response variable
+
+```{r}
+solution <-rep(c(1,2,3), each=4)
+days <-  rep(c(1,2,3,4), each=3)
+solution <- factor(solution, levels=c(1,2,3), labels = c("Sol1", "Sol2", "Sol3"))
+days <- factor(days, levels =c(1,2,3,4), labels = c("Day1", "Day2", "Day3", "Day4"))
+
+growth<-c(13,22,18,39,16,24,17,44,5,4,1,22)
+
+powder <-data.frame(solution, days, growth)
+
+head(powder)
+str(powder)
+attach(powder)
+```
+
+Any evidence that the solution affect bacteria growth
+
+```{r}
+length(growth)
+length(solution)
+boxplot(growth~solution, main="growth vs solution")
+
+interaction.plot(solution, days, growth)
+interaction.plot(days, solution, growth)
+
+```
+The interaction appears to be weak cause these interaction plots are intersecting.
+
+
+```{r}
+powder.mod <- aov(growth~solution*days)
+summary.aov(powder.mod)
+
+summary.lm(powder.mod)
+
+powder.nointeraction.mod <- aov(growth~solution+days)
+anova(powder.mod, powder.nointeraction.mod)
+```
+Pvalue is 0, so there appears to be no interaction, so we chose non-interactive model.
+
+### b. Perform a TukeyHSD to compare solution treatment means
+```{r}
+tukeys <- TukeyHSD(powder.nointeraction.mod)
+plot(tukeys)
+```
+Difference of mean is the same so the solution or days doesn't affect much of the bacterial growth
+
+```{r}
+lsd <- LSD.test(powder.nointeraction.mod, c("solution", "days"), console = T)
+plot(lsd)
+```
+
+The solution and days doesn't appear to have much affect on growth.
+
+### c. Check assumptions of the residuals
+
+```{r}
+
+res <- residuals(powder.nointeraction.mod)
+
+qqnorm(res)
+qqline(res)
+shapiro.test(res)
+#check variance
+bartlett.test(res~solution)
+bartlett.test(res~days)
+```
+
+The data is normal and variance is equal.

@@ -1,0 +1,254 @@
+---
+title: "Lab 4b"
+author: "Jas Sur"
+date: "3/1/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+### a. Set up the data frame, named “chem”, with “Bolt” and “Chemical” factors, 
+### “strength” as response.
+
+```{r}
+
+setup_q_1 <- function()
+{ 
+chemical.data <- rep(c(1,2,3,4), each=5)
+bolt.data <- rep(c(1,2,3,4,5), times=4)
+
+strength <- c(73,68,74,71,67,73,67,75,72,70,75,68,78,73,68,73,71,75,75,69)
+
+effect <- data.frame(strength, chemical.data, bolt.data)
+effect$chemical <- factor(chemical.data, levels=c(1,2,3,4), 
+                          labels = c("Chemical1", "Chemical2", "Chemical3", 
+                                     "Chemical4"))
+effect$bolt <- factor(bolt.data, levels=c(1,2,3,4,5), 
+                      labels=c("Bolt1", "Bolt2", "Bolt3", "Bolt4", "Bolt5"))
+return (effect)
+}
+effect <-setup_q_1()
+str(effect)
+head(effect)
+attach(effect)
+```
+
+### b.i. Any evidence that the Chemical affect Strength ? 
+### Note: Chemical is the treatment factor. 
+
+```{r}
+tapply(strength, list(chemical, bolt), mean)
+boxplot(strength~chemical, main="strength vs chemical")
+boxplot(strength~bolt, main="strength vs bolt")
+boxplot(strength~chemical*bolt, main="strength vs bolt*chemical")
+
+interaction.plot(bolt, chemical, strength)
+interaction.plot(chemical, bolt, strength)
+
+```
+
+> There appears to be strong interaction between bolt and chemical on it appears 
+to be causing a varying response
+
+```{r}
+effect.interaction.mod <- aov(strength~chemical*bolt, data=effect)
+summary.aov(effect.interaction.mod)
+```
+
+Since n=1 (single replicate) ; MSE =SSE/ab(n-1), MSE can’t be calculated!
+We can assume no significant between chemical and bolt
+
+We need to run Tukey1df to check if the interaction term is significant
+```{r}
+library(daewr)
+tukey.interaction <- data.frame(strength, chemical, bolt)
+Tukey1df(tukey.interaction)
+```
+
+> NonAdditivity is 0.7508, so interaction term is not significant
+
+
+```{r}
+effect.mod <- aov(strength~chemical+bolt, data=effect)
+summary.aov(effect.mod)
+```
+> The Chemical has pvalue >0.05, so the null hypothesis that the chemical 
+doesn't affect strength is accepted and the alternative hypothesis that the 
+chemical affect strength is rejected
+
+>The bolt has pvalue <0.05, so the null hypothesis that the chemical doesn't 
+affect strength is rejected and the alternative hypothesis that the chemical 
+affect strength is accepted
+
+### b.ii. Is Bolt is an effective blocking factor?
+> Since it's pvalue is significant, the blocking factor could be effective. 
+We need to check if the MSE  increases or decreases without blocking factor. 
+If it increases, then we know that Blocking factor is effective.
+
+```{r}
+effect.1.mod <- aov(strength~chemical, data=effect)
+summary.aov(effect.1.mod)
+```
+> MSE increases significantly without bolt, so yes the bolt act as an effective 
+blocking factor
+
+### c. Perform a TukeyHSD to compare the treatment means. Which Chemical is the 
+### preferred(bring the highest strength)
+
+```{r}
+tukey <- TukeyHSD(effect.mod)
+tukey
+plot(tukey)
+```
+
+Chemical difference of mean is not significant, so it's clear chemical doesn't 
+affect the strength. Some of the bolt values have pvalue <0.05, so it's clearly 
+affect the strength.
+
+### d. Check the assumptions of the residuals.
+
+```{r}
+res <- residuals(effect.mod)
+
+qqnorm(res)
+qqline(res)
+shapiro.test(res)
+bartlett.test(res~bolt)
+bartlett.test(res~chemical)
+```
+
+The data doesn't appear to be normal, but it has const variance.
+
+```{r echo=FALSE}
+detach()
+```
+
+***
+
+## Question 2
+### a. set up the data frame named eye, subject, distance as factors and time as response
+
+```{r}
+setup_q_2 <-function()
+{
+subject.data <-rep(c(1,2,3,4,5), time=4)
+distance.data <- rep(c(4,6,8,10), each=5)
+time <-c(10,6,6,6,6,7,6,6,1,6,5,3,3,2,5,6,4,4,2,3)
+eye <- data.frame(time, subject.data, distance.data)
+
+eye$subject <- factor(subject.data, c(1,2,3,4,5), label=c("Sub1","Sub2", "Sub3","Sub4", "Sub5"))
+
+eye$distance <- factor(distance.data, c(4,6,8,10), label=c("Dist4","Dist6", "Dist8","Dist10"))
+return (eye)
+}
+eye <- setup_q_2()
+head(eye)
+str(eye)
+```
+### b. build a regression model named eye.mod. Is "subject" an effecting blocking factor?
+```{r}
+attach(eye)
+eye.mod <- aov(time~subject*distance, data=effect)
+summary.aov(eye.mod)
+```
+Since n=1, so there are no pvalues. We need to check it using Tukeys1df
+
+```{r}
+library(daewr)
+tukey.interaction <- data.frame(time, subject, distance)
+Tukey1df(tukey.interaction)
+```
+
+NonAdditivity is 0.6624, so interaction is not significant.
+
+
+```{r}
+eye.mod <- aov(time~subject+distance, data=effect)
+summary.aov(eye.mod)
+```
+It's evident that both subject and distance are both significant.
+
+
+```{r}
+eye.distance.mod <- aov(time~distance, data=effect)
+summary.aov(eye.distance.mod)
+```
+Blocking factor decreases the MSE value, so it is effective
+
+### c. Perform TukeyHSD on “Distance”. Which Distances bring the longest/ shortest focus time
+
+```{r}
+tukey.distance <- TukeyHSD(eye.distance.mod)
+tukey.distance
+plot(tukey.distance)
+```
+
+
+### d.  Calculate the sample size for power > .90, use power.anova.test().
+
+```{r}
+MSE <-1.275
+trt.means <-tapply(time, list(subject, distance), mean)
+power.anova.test(groups=5, n=2, between.var = var(trt.means), within.var = MSE, 
+                 sig.level = 0.05)
+```
+
+```{r echo=FALSE}
+detach()
+```
+***
+
+## Question 3
+### a. Setup a dataframe manually to use the Latin square design
+```{r}
+
+setup_q_3<- function () 
+{
+operator <- factor(rep(c(1,2,3,4), time=4), level=c(1,2,3,4), 
+                   label=c("Op1", "Op2", "Op3", "Op4"))
+order <- factor(rep(c(1,2,3,4), each=4), level=c(1,2,3,4), 
+                label=c("Order1","Order2","Order3","Order4" ))
+r1 <- c('C','D','A','B')
+r2 <- c('B','C','D','A')
+r3 <- c('A','B','C','D')
+r4 <- c('D','A','B','C')
+treat <- c(r1,r2,r3,r4)
+time <- c(10,14,7,8,7,18,11,8,5,10,11,9,10,10,12,14)
+
+experiment <-data.frame(operator, order, treat, time)
+return (experiment)
+}
+experiment <- setup_q_3()
+str(experiment)
+head(experiment)
+attach(experiment)
+```
+
+### b. Build a regression model, using aov(). Do the treatment affect the assembly time?
+
+```{r}
+
+time.aov <- aov(time~treat+order+operator)
+summary(time.aov)
+```
+The pvalue for treatment is significant, so it does affect the assmebly time.
+
+### c. Find the lowest assembly time.
+
+```{r}
+tukey <- TukeyHSD(time.aov)
+tukey
+plot(tukey)
+```
+A has smallest assembly time
+
+```{r echo=FALSE}
+detach()
+```
+
+***
