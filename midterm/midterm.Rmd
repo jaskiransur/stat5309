@@ -1,0 +1,3 @@
+Temperature and Operator interaction isn't significant while all other interactions
+are significant.
+Operator 

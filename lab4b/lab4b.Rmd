@@ -241,6 +241,11 @@ The pvalue for treatment is significant, so it does affect the assmebly time.
 ### c. Find the lowest assembly time.
 
 ```{r}
+
+model.tables(time.aov, type="mean")
+```
+
+```{r}
 tukey <- TukeyHSD(time.aov)
 tukey
 plot(tukey)

@@ -1,0 +1,203 @@
+---
+title: "Lab-5"
+author: "Jas Sur"
+date: "3/10/2022"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(rsm) 
+```
+
+## Question 1.
+```{r}
+depth_of_cut.data <- c(0.15, 0.15, 0.15, 0.18, 0.18, 0.18, 0.2, 0.2, 0.2, 0.25, 0.25, 0.25, 0.15, 0.15, 0.15, 0.18, 0.18, 0.18, 0.2, 0.2, 0.2, 0.25, 0.25, 0.25, 0.15, 0.15, 0.15, 0.18, 0.18, 0.18, 0.2, 0.2, 0.2, 0.25, 0.25, 0.25)
+
+feed_rate.data<-c(0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3, 0.3)
+
+surface_finish <- c(74, 64, 60, 79, 68, 73, 82, 88, 92, 99, 104, 96, 92, 86, 88, 98, 104, 88, 99, 108, 95, 104, 110, 99, 99, 98, 102, 104, 99, 95, 108, 110, 99, 114, 107, 111) 
+
+df <- data.frame(depth_of_cut.data, feed_rate.data, surface_finish)
+df$depth_of_cut <- factor(df$depth_of_cut, levels = c(0.15,0.18,0.20,0.25), labels = c("dc.0.15", "dc.0.18", "dc.0.20", "dc.0.25"))
+df$feed_rate <- factor(df$feed_rate, levels = c(0.20,0.25,0.30), labels = c("fr.0.20","fr.0.25", "fr.0.30"))
+str(df)
+attach(df)
+```
+
+### a. Analyze the data and fraw conclustions 
+
+```{r}
+boxplot(surface_finish~feed_rate*depth_of_cut)
+interaction.plot(feed_rate, depth_of_cut, surface_finish)
+interaction.plot(depth_of_cut,feed_rate, surface_finish)
+
+```
+Interactive plot appears to suggest that there is no interaction between depth of cut and feed rate
+
+```{r}
+sf.aov <- aov(surface_finish~feed_rate*depth_of_cut)
+summary.aov(sf.aov)
+```
+Pvalue is small (<0.05) for feed_rate*depth_of_cut, so there appears to be some interaction between feed_Rate and depth_of_cut
+
+Interaction probability is significant, so we can test it using FO and TWI or the SO and check its suitability.
+
+### b. prepare appropriate residual plots and comment on the model's adequacy
+
+```{r}
+library(rsm) 
+sf.rsm<- rsm(surface_finish ~ FO(feed_rate.data, depth_of_cut.data)
+             + TWI(feed_rate.data, depth_of_cut.data)
+             + PQ(feed_rate.data, depth_of_cut.data)) 
+summary(sf.rsm)
+```
+All parameters are significant except for depth_of_cut^2. The lack of fit is not significant and r2 is high. 
+
+Rerun it with depth_of_cut.data removed from the quadratic
+```{r}
+library(rsm) 
+sf.rsm<- rsm(surface_finish ~ FO(feed_rate.data, depth_of_cut.data)
+             + TWI(feed_rate.data, depth_of_cut.data)
+             + PQ(feed_rate.data)) 
+summary(sf.rsm)
+```
+All the parameters are significant and lack of fit is not significant and r2 is significant.
+
+```{r}
+canonical(sf.rsm)
+
+xs <-canonical(sf.rsm)$xs
+contour(sf.rsm,~feed_rate.data+depth_of_cut.data, at=xs, image=TRUE)
+
+persp(sf.rsm, ~ feed_rate.data+depth_of_cut.data, col = terrain.colors(50), contours = "colors",
+      zlab = "SF", 
+      xlabs=c("FR", "DoC"))
+```
+```{r, echo=FALSE}
+detach()
+```
+surface finish is best achieved at:
+   feed_rate.data depth_of_cut.data 
+        0.3407586         0.1373395 
+
+***
+
+## Question 2.
+
+```{r}
+DrillSpeed.data<- c(125, 125, 200, 200, 125, 125, 200, 200, 125, 125, 200, 200, 125, 125, 200, 200)
+
+FeedRate.data <- c(0.015, 0.015, 0.015, 0.015, 0.03, 0.03, 0.03, 0.03, 0.045, 0.045, 0.045, 0.045, 0.06, 0.06, 0.06, 0.06)
+
+Force<- c(2.7, 2.78, 2.83, 2.86, 2.45, 2.49, 2.85, 2.8, 2.6, 2.72, 2.86, 2.87, 2.75, 2.86, 2.94, 2.88) 
+drillpress <- data.frame(DrillSpeed.data, FeedRate.data, Force)
+drillpress$DrillSpeed <- as.factor(drillpress$DrillSpeed.data)
+drillpress$FeedRate <- as.factor(drillpress$FeedRate.data)
+str(drillpress)
+```
+```{r echo=FALSE}
+attach(drillpress)
+```
+
+```{r}
+boxplot(Force~DrillSpeed*FeedRate)
+interaction.plot(DrillSpeed, FeedRate, Force)
+interaction.plot(FeedRate,DrillSpeed, Force)
+```
+
+```{r}
+force.aov <- aov(Force~FeedRate*DrillSpeed)
+summary.aov(force.aov)
+```
+The interaction term is significant
+
+```{r}
+drillpress.rsm<- rsm(Force ~ FO(FeedRate.data, DrillSpeed.data)
+             + TWI(FeedRate.data, DrillSpeed.data)
+             + PQ(FeedRate.data, DrillSpeed.data), data=drillpress) 
+summary(drillpress.rsm)
+```
+
+Quadratic term is not siginficant, interaction term is not signifiant and r2 is too low.
+
+
+```{r}
+
+drillpress.rsm<- rsm(Force ~ FO(FeedRate.data, DrillSpeed.data)
+             + PQ(FeedRate.data),  data=drillpress) 
+summary(drillpress.rsm)
+```
+
+
+```{r}
+canonical(drillpress.rsm)
+xs <-canonical(drillpress.rsm)$xs
+contour(drillpress.rsm,~FeedRate.data+DrillSpeed.data, at=xs, image=TRUE)
+persp(drillpress.rsm, ~ FeedRate.data+DrillSpeed.data, col = terrain.colors(50), contours = "colors",
+      zlab = "res", 
+      xlabs=c("FR", "DS"))
+```
+ FeedRate.data DrillSpeed.data 
+       0.033625        0.000000
+       
+```{r, echo=FALSE}
+#detach data frame
+detach()
+```
+
+***
+
+## Question 3.
+
+```{r}
+
+Pressure.data <-c(120, 130, 140, 150, 120, 130, 140, 150, 120, 130, 140, 150)
+Temperature.data <- c(250, 250, 250, 250, 260, 260, 260, 260, 270, 270, 270, 270)
+Strength <- c(9.60, 9.69, 8.43, 9.98, 11.28, 10.10, 11.01, 10.44, 9.00, 9.57, 9.03, 9.80)
+Adhesive<- data.frame(Pressure.data, Temperature.data, Strength)
+Adhesive$Pressure <-as.factor(Pressure.data)
+Adhesive$Temperature <-as.factor(Temperature.data)
+```
+
+
+```{r}
+attach(Adhesive)
+Adhesive.aov<-aov(Strength~Temperature*Pressure)
+summary.aov(Adhesive.aov)
+```
+
+
+```{r}
+adhesive.rsm <- rsm(Strength ~ FO(Pressure.data, Temperature.data)
+                    +TWI(Pressure.data, Temperature.data)
+                    +PQ(Pressure.data, Temperature.data)) 
+summary(adhesive.rsm)
+
+```
+Interaction term and one quadratic term is not significant, so removing it.
+
+```{r}
+adhesive.rsm <- rsm(Strength ~ FO(Pressure.data, Temperature.data)
+                    +PQ(Temperature.data))  
+summary(adhesive.rsm)
+```
+```{r}
+canonical(adhesive.rsm)
+xs <-canonical(adhesive.rsm)$xs
+contour(adhesive.rsm,~Pressure.data+Temperature.data, at=xs, image=TRUE)
+persp(adhesive.rsm, ~ Pressure.data+ Temperature.data, col = terrain.colors(50), contours = "colors",
+      zlab = "Str", 
+      xlabs=c("Pres", "Temp"))
+```
+  Pressure.data Temperature.data 
+           0.000          259.858
+***
+  
+```{r, echo=FALSE}
+detach()
+```
